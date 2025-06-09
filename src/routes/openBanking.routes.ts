@@ -1,81 +1,28 @@
 import { Router } from 'express';
-import { scalarConfig } from '../config/scalar';
+import { OpenBankingController } from '../controllers/openBanking.controller';
 
 const router = Router();
-
-// Mock data for demonstration
-const mockStrategicScenarios = [
-  {
-    id: 1,
-    name: 'Internal Development',
-    cost: 1000000,
-    timeToImplement: 12,
-    strategicImportance: 0.8,
-    svi: 0.75
-  },
-  {
-    id: 2,
-    name: 'Outsourced Solution',
-    cost: 800000,
-    timeToImplement: 6,
-    strategicImportance: 0.7,
-    svi: 0.65
-  },
-  {
-    id: 3,
-    name: 'Hybrid Approach',
-    cost: 900000,
-    timeToImplement: 8,
-    strategicImportance: 0.85,
-    svi: 0.82
-  }
-];
+const openBankingController = new OpenBankingController();
 
 // OpenAPI spec
-router.get('/openapi.json', (req, res) => {
-  res.json(scalarConfig);
-});
+router.get('/openapi.json', openBankingController.getOpenApiSpec);
 
 // Get all strategic scenarios
-router.get('/scenarios', (req, res) => {
-  res.json(mockStrategicScenarios);
-});
+router.get('/scenarios', openBankingController.getAllScenarios);
 
 // Get scenario by ID
-router.get('/scenarios/:id', (req, res) => {
-  const scenario = mockStrategicScenarios.find(s => s.id === parseInt(req.params.id));
-  if (!scenario) {
-    return res.status(404).json({ message: 'Scenario not found' });
-  }
-  res.json(scenario);
-});
+router.get('/scenarios/:id', openBankingController.getScenarioById);
 
 // Calculate SVI for a new scenario
-router.post('/calculate-svi', (req, res) => {
-  const { cost, timeToImplement, strategicImportance } = req.body;
-
-  // Mock calculation
-  const svi = (strategicImportance * 0.5) +
-              ((1 - cost/1000000) * 0.3) +
-              ((1 - timeToImplement/12) * 0.2);
-
-  res.json({
-    svi: parseFloat(svi.toFixed(2)),
-    factors: {
-      strategicImportance,
-      cost,
-      timeToImplement
-    }
-  });
-});
+router.post('/calculate-svi', openBankingController.calculateSvi);
 
 // Get FAHP weights
-router.get('/fahp-weights', (req, res) => {
-  res.json({
-    strategicImportance: 0.5,
-    cost: 0.3,
-    timeToImplement: 0.2
-  });
-});
+router.get('/fahp-weights', openBankingController.getFahpWeights);
+
+// Update FAHP weights (new endpoint)
+router.put('/fahp-weights', openBankingController.updateFahpWeights);
+
+// Calculate SVI for multiple scenarios (new batch endpoint)
+router.post('/calculate-svi/batch', openBankingController.calculateMultipleSvi);
 
 export const openBankingRoutes = router;
