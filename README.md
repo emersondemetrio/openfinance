@@ -152,8 +152,3 @@ src/
 ### License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-### Acknowledgments
-
-- Based on research by [Author Name]
-- Original algorithms available at [GitHub Profile @viniciudezem1](https://github.com/viniciudezem1)

@@ -1,4 +1,12 @@
 import { Router } from 'express';
+import { validate } from '../middleware/validate';
+import {
+  SviCalculationRequestSchema,
+  SviCalculationResponseSchema,
+  FahpWeightsSchema,
+  ScenarioSchema,
+  ScenarioResponseSchema
+} from '../schemas/strategicDecision.schema';
 
 const router = Router();
 
@@ -41,7 +49,9 @@ const scenarios = [
 
 // Get all strategic scenarios
 router.get('/scenarios', (req, res) => {
-  res.json(scenarios);
+  const response = { scenarios };
+  const validatedResponse = ScenarioResponseSchema.parse(response);
+  res.json(validatedResponse);
 });
 
 // Get scenario by ID
@@ -50,18 +60,59 @@ router.get('/scenarios/:id', (req, res) => {
   if (!scenario) {
     return res.status(404).json({ error: 'Scenario not found' });
   }
-  res.json(scenario);
+  const validatedScenario = ScenarioSchema.parse(scenario);
+  res.json(validatedScenario);
 });
 
 // Calculate Strategic Value Index (SVI)
-router.post('/calculate-svi', (req, res) => {
-  const { cost, timeToImplement, strategicImportance } = req.body;
+router.post('/calculate-svi',
+  validate(SviCalculationRequestSchema),
+  (req, res) => {
+    const { cost, timeToImplement, strategicImportance } = req.body;
 
-  // Validate input
-  if (!cost || !timeToImplement || !strategicImportance) {
-    return res.status(400).json({ error: 'Missing required parameters' });
-  }
+    // Mock FAHP weights (in a real implementation, these would be calculated)
+    const weights = {
+      strategicImportance: 0.5,
+      cost: 0.3,
+      timeToImplement: 0.2
+    };
 
+    // Normalize inputs
+    const normalizedCost = 1 - (cost / 5000000); // Assuming max cost of 5M
+    const normalizedTime = 1 - (timeToImplement / 24); // Assuming max time of 24 months
+
+    // Calculate SVI using weighted sum
+    const svi = (
+      weights.strategicImportance * strategicImportance +
+      weights.cost * normalizedCost +
+      weights.timeToImplement * normalizedTime
+    );
+
+    const response = {
+      svi: parseFloat(svi.toFixed(2)),
+      factors: {
+        strategicImportance: {
+          weight: weights.strategicImportance,
+          value: strategicImportance
+        },
+        cost: {
+          weight: weights.cost,
+          value: normalizedCost
+        },
+        timeToImplement: {
+          weight: weights.timeToImplement,
+          value: normalizedTime
+        }
+      }
+    };
+
+    // Validate response
+    const validatedResponse = SviCalculationResponseSchema.parse(response);
+    res.json(validatedResponse);
+  });
+
+// Get FAHP weights
+router.get('/fahp-weights', (req, res) => {
   // Mock FAHP weights (in a real implementation, these would be calculated)
   const weights = {
     strategicImportance: 0.5,
@@ -69,44 +120,9 @@ router.post('/calculate-svi', (req, res) => {
     timeToImplement: 0.2
   };
 
-  // Normalize inputs
-  const normalizedCost = 1 - (cost / 5000000); // Assuming max cost of 5M
-  const normalizedTime = 1 - (timeToImplement / 24); // Assuming max time of 24 months
-
-  // Calculate SVI using weighted sum
-  const svi = (
-    weights.strategicImportance * strategicImportance +
-    weights.cost * normalizedCost +
-    weights.timeToImplement * normalizedTime
-  );
-
-  res.json({
-    svi: parseFloat(svi.toFixed(2)),
-    factors: {
-      strategicImportance: {
-        weight: weights.strategicImportance,
-        value: strategicImportance
-      },
-      cost: {
-        weight: weights.cost,
-        value: normalizedCost
-      },
-      timeToImplement: {
-        weight: weights.timeToImplement,
-        value: normalizedTime
-      }
-    }
-  });
-});
-
-// Get FAHP weights
-router.get('/fahp-weights', (req, res) => {
-  // Mock FAHP weights (in a real implementation, these would be calculated)
-  res.json({
-    strategicImportance: 0.5,
-    cost: 0.3,
-    timeToImplement: 0.2
-  });
+  // Validate weights
+  const validatedWeights = FahpWeightsSchema.parse(weights);
+  res.json(validatedWeights);
 });
 
 export const strategicDecisionRoutes = router;
